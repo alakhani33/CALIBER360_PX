@@ -24,15 +24,24 @@ Gain instant visibility into **What**, **Why**, **Who**, **When**, and **Where**
 st.title("🔍 Distilling Complex Text (Patient Feedback, Doctors' Notes, etc.) into 5Ws: What, Why, Who, When, Where")
 
 # Load data
-df = pd.read_csv("Sutter_Sample10_5Ws.csv")
-df.columns = [c.strip() for c in df.columns]
+# df = pd.read_csv("Sutter_Sample10_5Ws.csv")
+# ✅ Example: cache for 5Ws data
+@st.cache_data
+def load_5ws_data():
+    df = pd.read_csv("Sutter_Sample10_5Ws.csv")
+    df.columns = [c.strip() for c in df.columns]
+    df.reset_index(drop=True, inplace=True)
+    return df
 
-# Drop index: AgGrid won’t show it anyway by default.
-# Just ensure your DF doesn’t have an unwanted index column.
-df.reset_index(drop=True, inplace=True)
+# df.columns = [c.strip() for c in df.columns]
+
+# # Drop index: AgGrid won’t show it anyway by default.
+# # Just ensure your DF doesn’t have an unwanted index column.
+# df.reset_index(drop=True, inplace=True)
+df_5ws = load_5ws_data()
 
 # Build AgGrid config
-gb = GridOptionsBuilder.from_dataframe(df)
+gb = GridOptionsBuilder.from_dataframe(df_5ws)
 
 # Auto height & wrap
 gb.configure_default_column(wrapText=True, autoHeight=True)
@@ -58,14 +67,14 @@ grid_options = gb.build()
 
 # Show it
 AgGrid(
-    df,
+    df_5ws,
     gridOptions=grid_options,
     height=600,
     fit_columns_on_grid_load=True,
     allow_unsafe_jscode=True
 )
 
-st.caption("✅ **Powered by CALIBER360 AI** — distilling complexity into clarity.")
+st.caption("✅ **Powered by CALIBER360 AI** — distilling complexity into clarity instantaneously.")
 
 
 # Part 2: Real-Time Sentiment Chart
@@ -74,16 +83,32 @@ st.caption("✅ **Powered by CALIBER360 AI** — distilling complexity into clar
 st.header("📊 Real-Time Patient Feedback from Social Media")
 
 # Load your sentiment dataset
-df = pd.read_csv("Combined1000_NLPed.csv")
-df['Facility'] = df['Facility'].replace(
-    to_replace=r'(?i)kaiser.*',
-    value='Health System Alpha',
-    regex=True
-)
+# df = pd.read_csv("Combined1000_NLPed.csv")
+# ✅ Example: cache for social sentiment
+@st.cache_data
+def load_sentiment_data():
+    df = pd.read_csv("Combined1000_NLPed.csv")
+    df['Facility'] = df['Facility'].replace(
+        to_replace=r'(?i)kaiser.*',
+        value='Health System Alpha',
+        regex=True
+    )
+    df['date'] = pd.to_datetime(df['date'])
+    df['Org'] = df['Facility'].apply(lambda x: 'Health System Alpha' if 'Health System Alpha' in x else 'Competition')
+    df['week'] = df['date'].dt.to_period('W').apply(lambda r: r.start_time)
+    return df
 
-df['date'] = pd.to_datetime(df['date'])
-df['Org'] = df['Facility'].apply(lambda x: 'Health System Alpha' if 'Health System Alpha' in x else 'Competition')
-df['week'] = df['date'].dt.to_period('W').apply(lambda r: r.start_time)
+# df['Facility'] = df['Facility'].replace(
+#     to_replace=r'(?i)kaiser.*',
+#     value='Health System Alpha',
+#     regex=True
+# )
+
+# df['date'] = pd.to_datetime(df['date'])
+# df['Org'] = df['Facility'].apply(lambda x: 'Health System Alpha' if 'Health System Alpha' in x else 'Competition')
+# df['week'] = df['date'].dt.to_period('W').apply(lambda r: r.start_time)
+
+df = load_sentiment_data()
 
 # Weekly sentiment
 df_weekly = (
